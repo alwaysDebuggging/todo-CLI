@@ -41,4 +41,9 @@ size_t todo_size(const TaskList *tl);
 /************** UI / Output **************/
 void todo_list_print(const TaskList *tl);
 
+/************** File I/O **************/
+bool todo_load_from_file(TaskList *tl, const char *filename);
+bool todo_load_csv_file(TaskList *tl, const char *filename);
+bool todo_save_to_file(const TaskList *tl, const char *filename);
+
 #endif

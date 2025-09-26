@@ -125,12 +125,13 @@ bool todo_delete(TaskList *tl, int id)
         {
             // Free the text of the item being deleted (correct index!)
             free(tl->items[i].text);
-            
+
             // Move the last item to this position (if not the last item)
-            if (i < tl->count - 1) {
+            if (i < tl->count - 1)
+            {
                 tl->items[i] = tl->items[tl->count - 1];
             }
-            
+
             tl->count--;
             return true;
         }
@@ -201,4 +202,128 @@ void todo_list_print(const TaskList *tl)
         const Task *t = &tl->items[i];
         printf("%-4d %-6s  %s\n", t->id, t->done ? "✔" : "✗", t->text ? t->text : "");
     }
+}
+
+/************** File I/O **************/
+
+bool todo_load_from_file(TaskList *tl, const char *filename)
+{
+    if (!tl || !filename)
+    {
+        return false;
+    }
+
+    FILE *file = fopen(filename, "r");
+    if (!file)
+    {
+        return false; // File doesn't exist or can't be opened
+    }
+
+    char line[TODO_MAX_DESC];
+    while (fgets(line, sizeof(line), file))
+    {
+        // Remove newline character
+        size_t len = strlen(line);
+        if (len > 0 && line[len - 1] == '\n')
+        {
+            line[len - 1] = '\0';
+        }
+
+        // Skip empty lines
+        if (strlen(line) == 0)
+        {
+            continue;
+        }
+
+        // Add the task (simple format: each line is a task)
+        if (!todo_add(tl, line))
+        {
+            fclose(file);
+            return false; // Failed to add task
+        }
+    }
+
+    fclose(file);
+    return true;
+}
+
+bool todo_load_csv_file(TaskList *tl, const char *filename)
+{
+    if (!tl || !filename)
+    {
+        return false;
+    }
+
+    FILE *file = fopen(filename, "r");
+    if (!file)
+    {
+        return false;
+    }
+
+    char line[TODO_MAX_DESC];
+    while (fgets(line, sizeof(line), file))
+    {
+        // Remove newline
+        size_t len = strlen(line);
+        if (len > 0 && line[len - 1] == '\n')
+        {
+            line[len - 1] = '\0';
+        }
+
+        if (strlen(line) == 0)
+            continue;
+
+        // Parse CSV: id,done,text
+        char *id_str = strtok(line, ",");
+        char *done_str = strtok(NULL, ",");
+        char *text = strtok(NULL, ""); // Rest of line
+
+        if (id_str && done_str && text)
+        {
+            // Add the task with the text
+            if (todo_add(tl, text))
+            {
+                // Update the last added task with correct ID and done status
+                Task *last_task = &tl->items[tl->count - 1];
+                last_task->id = atoi(id_str);
+                last_task->done = (strcmp(done_str, "true") == 0);
+
+                // Update next_id to avoid conflicts
+                if (last_task->id >= tl->next_id)
+                {
+                    tl->next_id = last_task->id + 1;
+                }
+            }
+        }
+    }
+
+    fclose(file);
+    return true;
+}
+
+bool todo_save_to_file(const TaskList *tl, const char *filename)
+{
+    if (!tl || !filename)
+    {
+        return false;
+    }
+
+    FILE *file = fopen(filename, "w");
+    if (!file)
+    {
+        return false; // Can't create/write to file
+    }
+
+    for (size_t i = 0; i < tl->count; i++)
+    {
+        const Task *t = &tl->items[i];
+        // Save in CSV format: id,done,text
+        fprintf(file, "%d,%s,%s\n",
+                t->id,
+                t->done ? "true" : "false",
+                t->text ? t->text : "");
+    }
+
+    fclose(file);
+    return true;
 }

@@ -35,7 +35,10 @@ static void print_menu(void)
     puts("4) Mark UNDONE");
     puts("5) Delete task");
     puts("6) Count");
-    puts("0) Exit");
+    puts("7) Load from file (simple)");
+    puts("8) Load from CSV file");
+    puts("9) Save to file");
+    puts("0) Exit\n");
     printf("Choose: ");
 }
 
@@ -151,6 +154,57 @@ int main(void)
         case 6:
         { // count
             printf("Total tasks: %zu\n", todo_size(tl));
+        }
+        break;
+
+        case 7:
+        { // Load from simple text file
+            char filename[256];
+            printf("Enter filename (e.g., todos.txt): ");
+            read_line(filename, sizeof(filename));
+
+            if (todo_load_from_file(tl, filename))
+            {
+                printf("Successfully loaded tasks from '%s'\n", filename);
+            }
+            else
+            {
+                printf("Failed to load from '%s' (file not found or empty)\n", filename);
+            }
+        }
+        break;
+
+        case 8:
+        { // Load from CSV file
+            char filename[256];
+            printf("Enter CSV filename (e.g., todos.csv): ");
+            read_line(filename, sizeof(filename));
+
+            if (todo_load_csv_file(tl, filename))
+            {
+                printf("Successfully loaded CSV tasks from '%s'\n", filename);
+            }
+            else
+            {
+                printf("Failed to load CSV from '%s'\n", filename);
+            }
+        }
+        break;
+
+        case 9:
+        { // Save to file
+            char filename[256];
+            printf("Enter filename to save (e.g., my_todos.csv): ");
+            read_line(filename, sizeof(filename));
+
+            if (todo_save_to_file(tl, filename))
+            {
+                printf("Successfully saved tasks to '%s'\n", filename);
+            }
+            else
+            {
+                printf("Failed to save to '%s'\n", filename);
+            }
         }
         break;
 

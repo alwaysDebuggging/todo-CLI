@@ -6,3 +6,5 @@ Build:
 
 Run:
   ./todo.exe
+
+After running the exe file your terminal will showcase a menu.
