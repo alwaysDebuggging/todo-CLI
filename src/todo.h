@@ -5,12 +5,11 @@
 #include <stddef.h>
 #define TODO_MAX_DESC 256
 
-typedef struct todoTask
+typedef struct
 {
     int id;
     bool done;
-    char text[TODO_MAX_DESC];
-
+    char *text;
 } Task;
 
 typedef struct
@@ -29,17 +28,17 @@ void todo_free(TaskList *tl);
 
 /************** Operations on TaskList ************************/
 
-TaskList add_task(TaskList *tl, const char *text);
+bool todo_add(TaskList *tl, const char *text);
 
-//bool delete_task(TaskList *tl, int id);
+bool todo_delete(TaskList *tl, int id);
 
 const Task *todo_find(const TaskList *tl, int id);
 
-bool todo_done(TaskList *tl, int id, bool done);
+bool todo_toggle_done(TaskList *tl, int id, bool done);
 
 size_t todo_size(const TaskList *tl);
 
 /************** UI / Output **************/
-//void task_print(const TaskList *tl);
+void todo_list_print(const TaskList *tl);
 
 #endif

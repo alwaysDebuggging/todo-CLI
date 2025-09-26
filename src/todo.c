@@ -23,47 +23,120 @@ TaskList *todo_init(void)
 
 void todo_free(TaskList *tl)
 {
-    if (tl == 0)
+    if (tl == NULL)
     {
         return;
     }
 
-    free(tl->items);
+    // Free all text allocations first
+    for (size_t i = 0; i < tl->count; i++)
+    {
+        free(tl->items[i].text);
+    }
 
+    // Free the items array
+    free(tl->items);
     tl->items = NULL;
 
     tl->count = tl->capacity = 0;
-
     tl->next_id = 1;
+
+    // Free the TaskList itself
+    free(tl);
 
     return;
 }
 
+/************** Health check ************************/
+
+TaskList *ensure_capacity(TaskList *tl, size_t needSize)
+{
+    if (tl->count >= needSize)
+    {
+        size_t new_cap;
+
+        if (tl->capacity)
+        {
+            new_cap = tl->capacity * 2; // Double current capacity
+        }
+        else
+        {
+            new_cap = 8; // Initial capacity
+        }
+
+        Task *p = (Task *)realloc(tl->items, new_cap * sizeof(Task));
+
+        if (!p)
+            return NULL;
+
+        tl->items = p;
+
+        tl->capacity = new_cap;
+    }
+
+    return tl;
+};
+
 /************** Operations on TaskList ************************/
 
-bool todo_add(TaskList *tl, char *text)
+bool todo_add(TaskList *tl, const char *text)
 {
-    // check for capacity maybe add a function that allocates more mem
-
     if (tl == NULL)
     {
         return false;
     }
-    
-    tl->count = tl->capacity = +1;
 
-    // Ensure the text is null-terminated
-    text[TODO_MAX_DESC - 1] = '\0';
-    strncpy(tl->items->text, text, TODO_MAX_DESC - 1);
+    // Ensure we have capacity for at least one more item
+    if (tl->count >= tl->capacity)
+    {
+        size_t new_cap = tl->capacity ? tl->capacity * 2 : 8;
+        Task *new_items = realloc(tl->items, new_cap * sizeof(Task));
+        if (!new_items)
+        {
+            return false; // Allocation failed
+        }
+        tl->items = new_items;
+        tl->capacity = new_cap;
+    }
 
-    tl->next_id++;
-    tl->items->done = false;
-    tl->items->id = +1;
+    Task *t = &tl->items[tl->count++];
+    t->id = tl->next_id++;
+    t->done = false;
 
+    // Allocate memory for text since it's a char* pointer
+    t->text = malloc(strlen(text) + 1);
+    if (!t->text)
+    {
+        tl->count--; // Rollback count increment
+        return false;
+    }
+
+    strcpy(t->text, text);
     return true;
 }
 
-// bool delete_task(TaskList *tl, int id);
+bool todo_delete(TaskList *tl, int id)
+{
+    if (!tl)
+        return false;
+    for (size_t i = 0; i < tl->count; i++)
+    {
+        if (tl->items[i].id == id)
+        {
+            // Free the text of the item being deleted (correct index!)
+            free(tl->items[i].text);
+            
+            // Move the last item to this position (if not the last item)
+            if (i < tl->count - 1) {
+                tl->items[i] = tl->items[tl->count - 1];
+            }
+            
+            tl->count--;
+            return true;
+        }
+    }
+    return false;
+}
 
 const Task *todo_find(const TaskList *tl, int id)
 {
@@ -94,11 +167,8 @@ bool todo_toggle_done(TaskList *tl, int id, bool done)
     {
         if (tl->items[i].id == id)
         {
-            if (done == true)
-            {
-                tl->items[i].done = true;
-                return true;
-            }
+            tl->items[i].done = done;
+            return true;
         }
     }
 
@@ -107,8 +177,28 @@ bool todo_toggle_done(TaskList *tl, int id, bool done)
 
 size_t todo_size(const TaskList *tl)
 {
+    if (tl == NULL)
+    {
+        return 0;
+    }
+
     return tl->count;
 }
 
 /************** UI / Output **************/
-// void todo_list_print(const TaskList *tl);
+void todo_list_print(const TaskList *tl)
+{
+    if (!tl || tl->count == 0)
+    {
+        puts("(no tasks)");
+        return;
+    }
+    printf("ID   Status  Description\n");
+    printf("--   ------  -----------\n");
+
+    for (size_t i = 0; i < tl->count; i++)
+    {
+        const Task *t = &tl->items[i];
+        printf("%-4d %-6s  %s\n", t->id, t->done ? "✔" : "✗", t->text ? t->text : "");
+    }
+}
